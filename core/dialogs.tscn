@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://dlpd6q10irl8t"]
+
+[ext_resource type="Script" path="res://addons/material_mapper/core/dialog.gd" id="1_7on5i"]
+
+[node name="Dialog" type="Node" unique_id=604838406]
+script = ExtResource("1_7on5i")
+
+[node name="FileSelector" type="FileDialog" parent="." unique_id=694129828]
+oversampling_override = 1.0
+title = "Select File(s)"
+ok_button_text = "Select"
+mode_overrides_title = false
+file_mode = 1
+access = 2
+filters = PackedStringArray("*.zip")
+use_native_dialog = true
+option_count = 3
+folder_creation_enabled = false
+option_0/name = "Add prefix"
+option_0/values = PackedStringArray("")
+option_1/name = "Add suffix"
+option_1/values = PackedStringArray("")
+option_2/name = "Material preset"
+option_2/values = PackedStringArray("")
+
+[node name="DirSelector" type="FileDialog" parent="." unique_id=472761965]
+oversampling_override = 1.0
+title = "Select Texture Path"
+mode_overrides_title = false
+file_mode = 2
