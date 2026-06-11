@@ -37,7 +37,7 @@ func open_file_system(paths: PackedStringArray) -> void:
 					clean_presets.append(preset)
 			dialog.file_selector.set_option_values(2, clean_presets)
 		else:
-			push_warning('Preset directory is invalid!= ',presets_path)
+			push_warning('Material preset path directory is invalid!= ',presets_path,'. Choose one in the project settings= ProjectSettings/General/material_mapper/mapping/general/material_presets_path')
 	else: dialog.file_selector.set_option_values(2, [default_empty])
 	
 	

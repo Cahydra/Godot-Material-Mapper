@@ -3,8 +3,6 @@ extends Node
 
 ##TODO
 ##Make texture importing work every single time, it is a bit inconsistent for the moment.
-##Check whether or not hooking resources_reimported signal to 'create_material' that fetches globally stored file names.
-##Example: EditorInterface.get_resource_filesystem().resources_reimported.connect(create_material)
 
 ## SETTINGS
 ## texture path
@@ -20,19 +18,19 @@ extends Node
 
 const allowed_material_extensions: Array = ['tres','res','material']
 const default_allowed_extensions: String = 'png,jpg,jpeg,exr,hdr,dds,tga,svg,bmp,ktx,webp'
-const default_texture_names: Dictionary = {
-	'albedo_texture': '_Color,_diff',
-	'orm_texture': '_ORM',
-	'metallic_texture': '_Metalness,_metal',
-	'roughness_texture': '_Roughness,_rough',
-	'emission_texture': '',
-	'normal_texture': '_NormalGL,_nor_gl',
+const default_texture_suffixes: Dictionary = {
+	'albedo_texture': '_Color,_col,_diffuse,_diff,_albedo,_alb,_basecolor',
+	'orm_texture': '_ORM,_rma,_mra,_arm,_mro',
+	'metallic_texture': '_Metalness,_metal,_metallic,_mtl',
+	'roughness_texture': '_Roughness,_rough,_rgh',
+	'emission_texture': '_Emission,_emissive,_emiss,_emit',
+	'normal_texture': '_NormalGL,_nor_gl,_normal,_normalmap,_nrm',
 	'bent_normal_texture': '',
 	'rim_texture': '',
 	'clearcoat_texture': '',
 	'anisotropy_flowmap': '',
-	'ao_texture': '_AmbientOcclusion,_ao',
-	'heightmap_texture': '_Displacement,_disp',
+	'ao_texture': '_AmbientOcclusion,_ao,_occlusion',
+	'heightmap_texture': '_Displacement,_disp,_height,_depth',
 	'subsurf_scatter_texture': '',
 	'subsurf_scatter_transmittance_texture': '',
 	'backlight_texture': '',
@@ -42,6 +40,10 @@ const default_texture_names: Dictionary = {
 	'detail_normal': '',
 }
 
+##CAUTION USING CACHED VARIABLES, THEY MIGHT LIE CAUTION
+var cached_files: PackedStringArray = PackedStringArray()
+var cached_options: Dictionary = {0: '', 1: '', 2: ''}
+
 func _ready() -> void:
 	#print(
 		#"\n\nAUTOLOAD PATH= ",get_path(),
@@ -50,63 +52,69 @@ func _ready() -> void:
 	## INIT CREATE SETTINGS
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/texture_path'):
 		set_setting('material_mapper/mapping/general/texture_path','',TYPE_STRING,PROPERTY_HINT_DIR)
-
+	
 	## Material
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/material_path'):
 		set_setting('material_mapper/mapping/general/material_path','',TYPE_STRING,PROPERTY_HINT_DIR)
-
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/material_extension'):
 		set_setting('material_mapper/mapping/general/material_extension','tres',TYPE_STRING,PROPERTY_HINT_ENUM,'tres,res,material')
-
-
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/material_presets_path'):
 		set_setting('material_mapper/mapping/general/material_presets_path','res://addons/material_mapper/presets',TYPE_STRING,PROPERTY_HINT_DIR)
-
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/material_name_prefixes'):
 		set_setting('material_mapper/mapping/general/material_name_prefixes','',TYPE_STRING)
-
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/material_name_suffixes'):
 		set_setting('material_mapper/mapping/general/material_name_suffixes','',TYPE_STRING)
-
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/create_texture_subfolders'):
 		set_setting('material_mapper/mapping/general/create_texture_subfolders',true,TYPE_BOOL)
-
+	
+	if not ProjectSettings.has_setting('material_mapper/mapping/general/case_sensitive_texture_suffixes'):
+		set_setting('material_mapper/mapping/general/case_sensitive_texture_suffixes',true,TYPE_BOOL)
+	
 	if not ProjectSettings.has_setting('material_mapper/mapping/general/allowed_extensions'):
 		set_setting('material_mapper/mapping/general/allowed_extensions',default_allowed_extensions,TYPE_STRING)
-
+	
 	##Godot compatible texture names.
-	for texture_name: String in default_texture_names.keys():
-		if not ProjectSettings.has_setting('material_mapper/mapping/general/texture_names/'+ texture_name):
-			set_setting('material_mapper/mapping/texture_names/'+ texture_name,default_texture_names[texture_name],TYPE_STRING)
-
+	for texture_suffix: String in default_texture_suffixes.keys():
+		if not ProjectSettings.has_setting('material_mapper/mapping/general/texture_suffixes/'+ texture_suffix):
+			set_setting('material_mapper/mapping/texture_suffixes/'+ texture_suffix,default_texture_suffixes[texture_suffix],TYPE_STRING)
+	
 	ProjectSettings.save()
 	file_selector.files_selected.connect(process_files)
 	dir_selector.dir_selected.connect(texture_dir_selected)
 
 
 ## ERASE SETTINGS
-#func _exit_tree() -> void:
-	#set_setting('material_mapper/mapping/general/texture_path',null)
-	#
-	### Material
-	#set_setting('material_mapper/mapping/general/material_path',null)
-	#
-	#set_setting('material_mapper/mapping/general/material_presets_path',null)
-	#
-	#set_setting('material_mapper/mapping/general/material_name_prefixes',null)
-	#
-	#set_setting('material_mapper/mapping/general/material_name_suffixes',null)
-	#
-	#set_setting('material_mapper/mapping/general/create_texture_subfolders',null)
-	#
-	#set_setting('material_mapper/mapping/general/allowed_extensions',null)
-	#
-	###Godot compatible texture names.
-	#for texture_name: String in default_texture_names.keys():
-		#print("texture_name= ",texture_name)
-		#set_setting('material_mapper/mapping/texture_names/'+ texture_name,null)
-	#
-	#ProjectSettings.save()
+func _exit_tree() -> void:
+	set_setting('material_mapper/mapping/general/texture_path',null)
+	
+	## Material
+	set_setting('material_mapper/mapping/general/material_path',null)
+	
+	set_setting('material_mapper/mapping/general/material_extension',null)
+	
+	set_setting('material_mapper/mapping/general/material_presets_path',null)
+	
+	set_setting('material_mapper/mapping/general/material_name_prefixes',null)
+	
+	set_setting('material_mapper/mapping/general/material_name_suffixes',null)
+	
+	set_setting('material_mapper/mapping/general/create_texture_subfolders',null)
+	
+	set_setting('material_mapper/mapping/general/case_sensitive_texture_suffixes',null)
+	
+	set_setting('material_mapper/mapping/general/allowed_extensions',null)
+	
+	##Godot compatible texture names.
+	for texture_suffix: String in default_texture_suffixes.keys():
+		set_setting('material_mapper/mapping/texture_suffixes/'+ texture_suffix,null)
+	
+	ProjectSettings.save()
+
 
 ##Calls when importing zip files.
 func process_files(files: PackedStringArray) -> void:
@@ -125,9 +133,6 @@ func process_files(files: PackedStringArray) -> void:
 	##Create materials from files & options
 	create_materials_from_files(files,options)
 
-##CAUTION USING CACHED VARIABLES, THEY MIGHT LIE CAUTION
-var cached_files: PackedStringArray = PackedStringArray()
-var cached_options: Dictionary = {0: '', 1: '', 2: ''}
 
 ##Creates materials from files & options.
 func create_materials_from_files(files: PackedStringArray, options: Dictionary) -> void:
@@ -148,8 +153,7 @@ func create_materials_from_files(files: PackedStringArray, options: Dictionary) 
 	#print('texture_path= ',texture_path)
 
 	##Extract all zip files.
-	for path: String in files:
-		#print("\nPath= ",path,' | ',path.get_basename().get_file())
+	for path: String in files:#print("\nPath= ",path,' | ',path.get_basename().get_file())
 		##If create texture subfolder then
 		if ProjectSettings.get_setting('material_mapper/mapping/general/create_texture_subfolders'):
 			textures[texture_path+ '/'+ path.get_basename().get_file()] = zip_extract(path, texture_path, path.get_basename().get_file())
@@ -157,17 +161,16 @@ func create_materials_from_files(files: PackedStringArray, options: Dictionary) 
 			textures[texture_path] = zip_extract(path, texture_path)
 
 	#region await godot reimport before creating materials
-	await get_tree().create_timer(0.5).timeout##Random timer to hopefully make sure the created resources actually exist for godot.
-
+	await get_tree().create_timer(0.75).timeout##Random timer to hopefully make sure the created resources actually exist for godot.
+	
 	##Scan for files that are not yet imported.
 	file_system.scan()
 	file_system.scan_sources()
-
+	
 	await file_system.resources_reimported
-	await get_tree().create_timer(0.5).timeout##Random timer to hopefully make sure the imported resources actually get reimported by godot properly.
+	await get_tree().create_timer(0.75).timeout##Random timer to hopefully make sure the imported resources actually get reimported by godot properly.
 	#endregion
-
-
+	
 	for path: String in textures.keys():
 		#print('\nPath= ',path)
 		for material_name: String in textures[path].keys():
@@ -176,7 +179,6 @@ func create_materials_from_files(files: PackedStringArray, options: Dictionary) 
 				if ProjectSettings.get_setting('material_mapper/mapping/general/create_texture_subfolders'):
 					material_path = texture_path+ '/'+ material_name
 				else:material_path = texture_path
-
 			#print(
 				#'\nMaterial name= ',material_name,
 				#'\nTextures= ',textures[path][material_name],
@@ -244,8 +246,7 @@ func create_material(material_name: String, textures: Dictionary, path: String, 
 				material.refraction_enabled = true
 			'detail_mask','detail_albedo','detail_normal':
 				material.detail_enabled = true
-
-
+	
 	#print('full path= ',path+ '/'+ prefix+ material_name+ suffix+ '.'+ extension)
 	ResourceSaver.save(material, path+ '/'+ prefix+ material_name+ suffix+ '.'+ extension, ResourceSaver.FLAG_COMPRESS)
 	return material
@@ -258,13 +259,8 @@ func texture_dir_selected(dir: String) -> void:
 		#"\ncached_files= ",cached_files,
 		#"\ncached_options= ",cached_options,
 	#)
-
-	##Update file system to show new folder assuming a folder was created.
-	file_system.scan()
-
 	##Save texture folder path
 	set_setting('material_mapper/mapping/general/texture_path',dir)
-
 	##Create the materials from files & selected options.
 	create_materials_from_files(cached_files,cached_options)
 
@@ -277,21 +273,13 @@ func zip_extract(zip_path: String, extract_path: String, subfolder: String = '')
 	if err != OK:
 		push_error("Failed to unzip zip_path!= ",zip_path," | Reason= ",error_string(err))
 		return {}
-
+		
 	##textures = {'texture_name': 'res://Texture/Path'}
 	var textures: Dictionary = {}
-	var found_texture_name: String = ''
-
+	
 	var extensions: Array = ProjectSettings.get_setting('material_mapper/mapping/general/allowed_extensions',default_allowed_extensions).split(',')
 	#print("extensions= ",extensions)
-
-	var default_texture_names_duplicate: Dictionary = {}
-	##Write to default_texture_names_duplicate
-	for texture_name: String in default_texture_names.keys():
-		default_texture_names_duplicate[texture_name] = ProjectSettings.get_setting('material_mapper/mapping/texture_names/'+ texture_name,'')
-	#print("default_texture_names_duplicate= ",default_texture_names_duplicate)
-
-
+	
 	var root_dir: DirAccess = DirAccess.open(extract_path)
 	var file_path: String = ''
 	var filter_result: Dictionary = {}
@@ -320,7 +308,7 @@ func zip_extract(zip_path: String, extract_path: String, subfolder: String = '')
 		##Create material name inside textures.
 		if !textures.has(filter_result['material_name']): textures[filter_result['material_name']] = {}
 
-		textures[filter_result['material_name']][filter_result['texture_name']] = file_access.get_path()
+		textures[filter_result['material_name']][filter_result['texture_suffix']] = file_access.get_path()
 		if file_system: file_system.update_file(file_path)
 	reader.close()
 	return textures
@@ -334,8 +322,8 @@ Files:
 	res://Texture_Male_ORM.png
 Output = {
 	Texture_Female: {
-		directory is chosen by the first texture for assumed texture name.
-		directory: res://Texture_Female_Color.png base name
+		directory is chosen by the first texture file path when texture name is created.
+		directory: res://Texture_Female_Color.png,
 		albedo_texture: res://Texture_Female_Color.png,
 		orm_texture: res://Texture_Female_ORM.png
 	}
@@ -345,63 +333,79 @@ Output = {
 	}
 }
 """
+## Texture = Name + Type + Extension
 ## filter_files( files, include_directory? )
 func filter_files(files: PackedStringArray = [], include_directory: bool = true)->Dictionary:
 	#print('\nFilter files= ',files)
 	var output: Dictionary = {}
 	var extensions: Array = ProjectSettings.get_setting('material_mapper/mapping/general/allowed_extensions',default_allowed_extensions).split(',')
-	#print("extensions= ",extensions)
-
-	var compatible_texture_names: Dictionary = {}
-	for texture_name: String in default_texture_names.keys():##Writes to compatible_texture_names
-		compatible_texture_names[texture_name] = ProjectSettings.get_setting('material_mapper/mapping/texture_names/'+ texture_name,'')
+	var case_sensitive: bool = ProjectSettings.get_setting('material_mapper/mapping/general/case_sensitive_texture_suffixes', true)
+	
+	var compatible_texture_suffixes: Dictionary = {}
+	for texture_suffix: String in default_texture_suffixes.keys():##Writes to compatible_texture_names
+		compatible_texture_suffixes[texture_suffix] = ProjectSettings.get_setting('material_mapper/mapping/texture_suffixes/'+ texture_suffix,'')
 	#print("compatible_texture_names= ",compatible_texture_names)
-
-
-	var found_compatible_texture_name: String = ''
-	var found_item: String = ''
+	
+	##Reusable variables.
+	var found_suffixes: Dictionary = {}
+	var found_texture_name: String = ''
+	var found_suffix_name: String = ''
 	var file_name: String = ''
+	var end_most_suffix_index: int = 0##Suffix closest to the end (highest index is closest to the end)
+	
 	for file: String in files:
 		if not extensions.has(file.get_extension()): continue
-		found_compatible_texture_name = ''
-		found_item = ''
+		found_suffixes = {}
+		found_texture_name = ''
+		found_suffix_name = ''
 		file_name = file.get_file().get_basename()
+		end_most_suffix_index = 0
 		#print('\nFile= ',file)
 		#print('File Name= ',file_name)
 		
-		## Loop over all compatible texture names
-		for texture_name: String in compatible_texture_names.keys():
-			if found_item.length() >0: break##Break, found item.
-			if compatible_texture_names[texture_name].length() == 0: continue##Skip missing.
-			
-			##Check if file name has a compatible texture name key inside its name.
-			for item: String in compatible_texture_names[texture_name].split(','):
-				if item in file_name:##Compatible Texture Name found for file!
-					found_compatible_texture_name = texture_name
-					found_item = item
-					break
-		if found_compatible_texture_name.length() == 0: continue##No compatible texture name found!
+		## Loop over all compatible texture suffixes
+		for texture_name: String in compatible_texture_suffixes.keys():
+			if compatible_texture_suffixes[texture_name].length() == 0: continue##Skip missing.
+			##Check if file name has a compatible texture suffix key inside its name.
+			for suffix: String in compatible_texture_suffixes[texture_name].split(','):
+				#print('\nsuffix= ',suffix)
+				var suffix_index: int = case(file_name, case_sensitive).rfind(case(suffix, case_sensitive))
+				if suffix_index != -1:##Found suffix in file name?
+					if !found_suffixes.has(texture_name): found_suffixes[texture_name] = {}
+					found_suffixes[texture_name][suffix] = suffix_index
+		if found_suffixes.size() == 0: continue##No suffixes found, skip.
+		#print('\nfound_suffixes= ',found_suffixes)
 		
-		var texture_name: String = file_name.replace(found_item,'')
-		#print('Assumed Texture Name= ',texture_name)
-		#print('Found material name= ',texture_name)
 		
+		##Find highest index first
+		##And use the biggest suffix name
+		for texture_name: String in found_suffixes.keys():#print('\nTexture Name= ',texture_name)
+			for suffix: String in found_suffixes[texture_name].keys():#print('\nSuffix= ',suffix,' | index= ',found_suffixes[texture_name][suffix])
+				##Use highest index
+				##or same index and new suffix name is longer.
+				if found_suffixes[texture_name][suffix] > end_most_suffix_index or found_suffixes[texture_name][suffix] == end_most_suffix_index and suffix.length() > found_suffix_name.length():
+					found_texture_name = texture_name
+					end_most_suffix_index = found_suffixes[texture_name][suffix]
+					found_suffix_name = suffix
+		#print('\nfound_texture_name= ',found_texture_name)
+		#print('found_suffix_name= ',found_suffix_name)
+		
+		##Remove suffix from texture name.
+		var clean_file_name: String = file_name.erase(end_most_suffix_index,found_suffix_name.length())
 		if include_directory:
-			## Create Texture Name dictionary for output.
-			if !output.has(texture_name):
-				output[texture_name] = {}
-				output[texture_name]['directory'] = file.get_base_dir()
-			## Add found_compatible_texture_name to Texture Name.
-			output[texture_name][found_compatible_texture_name] = file
+			## Create Texture suffix dictionary for output.
+			if !output.has(clean_file_name):
+				output[clean_file_name] = {}
+				output[clean_file_name]['directory'] = file.get_base_dir()
+			## Add found_texture_name to material name (clean file name).
+			output[clean_file_name][found_texture_name] = file
 		else:
-			##texture name == godot compatible texture name
-			##material name == TextureName - Type - Extension
-			output['texture_name'] = found_compatible_texture_name
-			output['material_name'] = texture_name
+			output['texture_suffix'] = found_texture_name##texture suffix == godot compatible texture name
+			output['material_name'] = clean_file_name##material name == TextureName - Type - Extension
 	return output
 
-
-
+##Returns string modified by case sensitivity.
+func case(string: String, case_sensitive: bool) -> String: return string if case_sensitive else string.to_lower()
 
 func set_setting(_name: String, value: Variant = '', type: Variant.Type = 0, hint: PropertyHint = 0, hint_string: String = '') -> void:
 	#print("\nSet setting= ",_name,' | ',value,' | ',type,' | ',hint)
