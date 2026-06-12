@@ -36,13 +36,10 @@ Simply change a few settings inside your `Project Settings > General > Material 
  - Example: 
  You need to map `Robot_Emission.png`
  - Do: 
- Find `Emission
-   Texture` inside your `Project Settings > General > Material Mapper >
-   Texture Suffixes > Emission Texture`
+ Find `Emission Texture` inside your `Project Settings > General > Material Mapper > Texture Suffixes > Emission Texture`
    Then simply seperate your texture suffix (_Emission) with a comma (,) 
   - Result: 
-  `Emission
-   Texture` = `_Emission,_emissive,_emit`
+  `Emission Texture` = `_Emission,_emissive,_emit`
 
 # Donate ♡
 Feel free to donate if you find this useful!
