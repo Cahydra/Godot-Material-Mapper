@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/addons/material_mapper/images/MM_Banner.png" 
+<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/images/MM_Banner.png" 
 width="600" border="1"/>
 </p>
 
@@ -20,10 +20,10 @@ Simply select multiple textures with matching names (Diffuse, Normal, Roughness,
 Perfect for artists and developers working with large texture libraries, saving time and speeding up repetitive setup work.
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/addons/material_mapper/images/MM_Description1.png" 
+<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/images/MM_Description1.png" 
 width="100%" border="1"/>
 <br>
-<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/addons/material_mapper/images/MM_Description2.png" 
+<img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/images/MM_Description2.png" 
 width="100%" border="1"/>
 </p>
 
