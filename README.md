@@ -1,4 +1,4 @@
-<img width="1436" height="789" alt="image" src="https://github.com/user-attachments/assets/865071a9-c402-4c8e-a653-5e3b9d695dc5" /><p align="center">
+<p align="center">
 <img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/images/MM_Banner.png" 
 width="600" border="1"/>
 </p>
