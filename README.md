@@ -1,6 +1,6 @@
 <p align="center">
 <img src="https://raw.githubusercontent.com/Cahydra/Godot-Material-Mapper/refs/heads/main/images/MM_Banner.png" 
-width="600" border="1"/>
+width="80%" border="1"/>
 </p>
 
 <p align="center">
